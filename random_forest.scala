@@ -1,3 +1,9 @@
+/*
+This code and information was taken from
+https://blog.learningtree.com/how-to-predict-outcomes-using-random-forests-and-spark/
+If this is a problem, please let me know!
+*/
+
 import scala.io.Source
 
 val csv = Source.fromURL("https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/breast-cancer-wisconsin.data").mkString.split("\\r?\\n")
