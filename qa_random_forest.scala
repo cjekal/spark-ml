@@ -1,4 +1,4 @@
-import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.{Pipeline, PipelineModel}
 import org.apache.spark.ml.classification.{RandomForestClassificationModel, RandomForestClassifier}
 import org.apache.spark.ml.evaluation.{BinaryClassificationEvaluator, MulticlassClassificationEvaluator}
 import org.apache.spark.ml.feature.{VectorAssembler, IndexToString, StringIndexer, VectorIndexer}
@@ -29,21 +29,22 @@ val pipeline = new Pipeline().setStages(Array(assembler, rf))
 
 val paramGridBuilder = new ParamGridBuilder()
 paramGridBuilder.addGrid(rf.impurity, Array("Gini", "entropy"))
-paramGridBuilder.addGrid(rf.maxDepth, Array(3, 5))
-paramGridBuilder.addGrid(rf.numTrees, Array(20, 640))
+paramGridBuilder.addGrid(rf.maxDepth, Array(3, 5, 7, 9, 11, 13))
+paramGridBuilder.addGrid(rf.numTrees, Array(20, 200, 400, 600, 800, 1000))
 val paramGrid = paramGridBuilder.build()
 
 val cv = new CrossValidator()
 cv.setEstimator(pipeline)
-cv.setEvaluator(new BinaryClassificationEvaluator().setMetricName("areaUnderROC"))
+cv.setEvaluator(new BinaryClassificationEvaluator().setLabelCol("HasQAFailure").setMetricName("areaUnderROC"))
 cv.setEstimatorParamMaps(paramGrid)
 cv.setNumFolds(3)
 
 val cvModel = cv.fit(trainingData)
+cvModel.bestModel.asInstanceOf[PipelineModel].stages(1).extractParamMap
 
 //val model = pipeline.fit(trainingData)
 
-val predictions = model.transform(testData)
+val predictions = cvModel.bestModel.transform(testData)
 
 val accuracyEvaluator = new MulticlassClassificationEvaluator().setLabelCol("HasQAFailure").setPredictionCol("prediction")
 val accuracy = accuracyEvaluator.setMetricName("accuracy").evaluate(predictions)
