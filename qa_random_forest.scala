@@ -3,6 +3,7 @@ import org.apache.spark.ml.classification.{RandomForestClassificationModel, Rand
 import org.apache.spark.ml.evaluation.{BinaryClassificationEvaluator, MulticlassClassificationEvaluator}
 import org.apache.spark.ml.feature.{VectorAssembler, IndexToString, StringIndexer, VectorIndexer}
 import org.apache.spark.sql.types.DoubleType
+import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
 
 val randomSeed = 1234
 
@@ -19,18 +20,28 @@ assembler.transform(data)
 val Array(trainingData, testData) = data.randomSplit(Array(0.7, 0.3), randomSeed)
 
 val rf = new RandomForestClassifier().setLabelCol("HasQAFailure").setFeaturesCol("features")
-rf.setImpurity("Gini")
-rf.setMaxDepth(5)
-rf.setNumTrees(200)
 rf.setFeatureSubsetStrategy("auto")
 rf.setSeed(randomSeed)
-
 
 // val labelConverter = new IndexToString().setInputCol("prediction").setOutputCol("predictedLabel").setLabels(labelIndexer.labels)
 
 val pipeline = new Pipeline().setStages(Array(assembler, rf))
 
-val model = pipeline.fit(trainingData)
+val paramGridBuilder = new ParamGridBuilder()
+paramGridBuilder.addGrid(rf.impurity, Array("Gini", "entropy"))
+paramGridBuilder.addGrid(rf.maxDepth, Array(3, 5))
+paramGridBuilder.addGrid(rf.numTrees, Array(20, 640))
+val paramGrid = paramGridBuilder.build()
+
+val cv = new CrossValidator()
+cv.setEstimator(pipeline)
+cv.setEvaluator(new BinaryClassificationEvaluator().setMetricName("areaUnderROC"))
+cv.setEstimatorParamMaps(paramGrid)
+cv.setNumFolds(3)
+
+val cvModel = cv.fit(trainingData)
+
+//val model = pipeline.fit(trainingData)
 
 val predictions = model.transform(testData)
 
