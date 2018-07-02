@@ -8,3 +8,5 @@ Steps:
   1. `docker-compose exec master /bin/bash bin/spark-shell`
   1. paste the contents of `random_forest.scala` into spark shell
   1. congrats, you just trained a RandomForest model
+
+Does it make sense to incorporate: https://github.com/big-data-europe/docker-hadoop-spark-workbench ????
